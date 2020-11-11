@@ -1,0 +1,46 @@
+def hadoop_lvm(location):
+    if location==1:
+                #creating lvm partition 
+               dev = input("Enter Device Name : ")
+               os.system('pvcreate {}'.format(dev))
+               print("Created pv : {}".format(dev))
+               os.system('pvdisplay {}'.format(dev))
+               vg = input("Enter Name of Volume Group : ")
+               os.system('vgcreate {}  {}'.format(vg , dev))
+               os.system('vgdisplay {}'.format(vg))
+               lv = input("Enter Logical Volume Name : ")
+               sz = input("Enter Size of Partition you want : ")
+               os.system('lvcreate --size {} --name {} {}'.format(sz , lv ,vg))
+               os.system("lvdisplay {}/{}".format(vg ,lv))
+               os.system('mkfs.ext4 /dev/{}/{}'.format(vg , lv))
+               print("Logical Volume Formatted ..")
+               #mounting the lvm partition
+               fold = input("Enter the folder Name which you want to be mount on LVM Parition : ")
+               vg = input("Enter Volume Group Name : ")
+               lv = input("Enter Logical Volume Name : ")
+               os.system("mount /dev/{}/{}  {}".format(vg , lv , fold))
+               print("Mounted the LVM Partiton ..")
+               os.system('df -hT')
+
+    elif location==2:
+               #creating lvm partition 
+               dev = input("Enter Device Name : ")
+               os.system('ssh {} pvcreate {}'.format(ip , dev))
+               print("Created pv : {}".format(dev))
+               os.system('ssh {} pvdisplay {}'.format(ip , dev))
+               vg = input("Enter Name of Volume Group : ")
+               os.system('ssh {} vgcreate {}  {}'.format(ip , vg , dev))
+               os.system('ssh {} vgdisplay {}'.format(ip , vg))
+               lv = input("Enter Logical Volume Name : ")
+               sz = input("Enter Size of Partition you want : ")
+               os.system('ssh {} lvcreate --size {} --name {} {}'.format(ip , sz , lv ,vg))
+               os.system("ssh {} lvdisplay {}/{}".format(ip , vg ,lv))
+               os.system('ssh {} mkfs.ext4 /dev/{}/{}'.format(ip ,vg , lv))
+               print("Logical Volume Formatted ..")
+               #mounting the lvm partition
+               folder = input("Enter the folder Name which you want to be mount on LVM Parition : ")
+               vg = input("Enter Volume Group Name : ")
+               lv = input("Enter Logical Volume Name : ")
+               os.system("ssh {} mount /dev/{}/{}  {}".format(ip , vg , lv , folder))
+               print("Mounted the LVM Partiton ..")
+               os.system('ssh {} df -hT'.format(ip))
