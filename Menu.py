@@ -1,196 +1,385 @@
 import os
-import getpass as gp
+from time import sleep
+import getpass as g
+import pyfiglet
 
-def hdfs_site(node,location):
-    os.system("cp /arth-task/task7.1/dn/temp.xml /arth-task/task7.1/dn/hdfs-site.xml")
-    os.system("echo \<configuration\> >> /arth-task/task7.1/dn/hdfs-site.xml")
-    os.system("echo \<property\> >> /arth-task/task7.1/dn/hdfs-site.xml")
-    os.system("echo \<name\>dfs.{}.dir\</name\> >> /arth-task/task7.1/dn/hdfs-site.xml".format(node))
-    folder=input("Enter the {}node directory to be created and configure: ".format(node))
-    if location==1:
-        os.system("mkdir {}".format(folder))
-    elif location==2:
-        os.system("ssh {} mkdir {}".format(ip,folder))
-    os.system("echo \<value\>{}\</value\> >> /arth-task/task7.1/dn/hdfs-site.xml".format(folder))
-    os.system("echo \</property\> >> /arth-task/task7.1/dn/hdfs-site.xml")
-    os.system("echo \</configuration\> >> /arth-task/task7.1/dn/hdfs-site.xml")
-    if location==1:
-        os.system("mv -f /arth-task/task7.1/dn/hdfs-site.xml /etc/hadoop/hdfs-site.xml")
-    elif location==2:
-        os.system("scp /arth-task/task7.1/dn/hdfs-site.xml {}:/etc/hadoop/hdfs-site.xml".format(ip))
-        os.system("rm -f /arth-task/task7.1/dn/hdfs-site.xml")
 
-def core_site(node,location):
-    os.system("cp /arth-task/task7.1/dn/temp.xml /arth-task/task7.1/dn/core-site.xml")
-    os.system("echo \<configuration\> >> /arth-task/task7.1/dn/core-site.xml")
-    os.system("echo \<property\> >> /arth-task/task7.1/dn/core-site.xml")
-    os.system("echo \<name\>fs.default.name\</name\> >> /arth-task/task7.1/dn/core-site.xml")
-    nnip=input("Enter the ip of the namenode: ")
-    port=input("Enter the port number of hadoop cluster: ")
-    os.system("echo \<value\>hdfs://{}:{}\</value\> >> /arth-task/task7.1/dn/core-site.xml".format(nnip,port))
-    os.system("echo \</property\> >> /arth-task/task7.1/dn/core-site.xml")
-    os.system("echo \</configuration\> >> /arth-task/task7.1/dn/core-site.xml")
-    if location==1:
-        os.system("mv -f /arth-task/task7.1/dn/core-site.xml /etc/hadoop/core-site.xml")
-    elif location==2:
-        os.system("scp /arth-task/task7.1/dn/core-site.xml {}:/etc/hadoop/core-site.xml".format(ip))
-        os.system("rm -f /arth-task/task7.1/dn/core-site.xml")
+def getFileContent(folder,node):
+return f"<?xml version=\"1.0\"?>\n<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>\n\n<!-- Put site-specific property overrides in this file. -->\n\n<configuration>\n<property>\n<name>dfs.{node}.dir</name>\n<value>{folder}</value>\n</property>\n</configuration>"
 
-def namenode(location):
-    if location==1:
-        #Configure and start namenode in local host
-        os.system('rpm -ivh /root/jdk-8u171-linux-x64.rpm')
-        os.system('rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force')
-        hdfs_site("name",location)
-        core_site("name",location)
-        os.system('hadoop namenode -format')
-        os.system('hadoop-daemon.sh start namenode')
-        os.system('jps')
-    elif location==2:
-        #Configure and start namenode in remote host
-        os.system('scp /root/jdk-8u171-linux-x64.rpm /root/hadoop-1.2.1-1.x86_64.rpm {}:/root/'.format(ip))
-        os.system('ssh {} rpm -ivh /root/jdk-8u171-linux-x64.rpm'.format(ip))
-        os.system('ssh {} rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force'.format(ip))
-        hdfs_site("name",location)
-        core_site("name",location)
-        os.system('ssh {} hadoop namenode -format'.format(ip))
-        os.system('ssh {} hadoop-daemon.sh start namenode'.format(ip))
-        os.system('ssh {} jps'.format(ip))
 
-def datanode(location):
-    if location==1:
-        #Configure and start datanode in local host
-        os.system('rpm -ivh /root/jdk-8u171-linux-x64.rpm')
-        os.system('rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force')
-        hdfs_site("data",location)
-        core_site("data",location)
-        os.system('hadoop-daemon.sh start datanode')
-        os.system('jps')
-    elif location==2:
-        #Configure and start datanode in remote host
-        os.system('scp /root/jdk-8u171-linux-x64.rpm /root/hadoop-1.2.1-1.x86_64.rpm {}:/root/'.format(ip))
-        os.system('ssh {} rpm -ivh /root/jdk-8u171-linux-x64.rpm'.format(ip))
-        os.system('ssh {} rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force'.format(ip))
-        hdfs_site("data",location)
-        core_site("data",location)
-        os.system('ssh {} hadoop-daemon.sh start datanode'.format(ip))
-        os.system('ssh {} jps'.format(ip))
+def getFileContentCore(ip):
+return f"<?xml version=\"1.0\"?>\n<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>\n\n<!-- Put site-specific property overrides in this file. -->\n\n<configuration>\n<property>\n<name>fs.default.name</name>\n<value>hdfs://{ip}:9001</value>\n</property>\n</configuration>"
 
-def hadoop_lvm(location):
-    if location==1:
-                #creating lvm partition 
-               dev = input("Enter Device Name : ")
-               os.system('pvcreate {}'.format(dev))
-               print("Created pv : {}".format(dev))
-               os.system('pvdisplay {}'.format(dev))
-               vg = input("Enter Name of Volume Group : ")
-               os.system('vgcreate {}  {}'.format(vg , dev))
-               os.system('vgdisplay {}'.format(vg))
-               lv = input("Enter Logical Volume Name : ")
-               sz = input("Enter Size of Partition you want : ")
-               os.system('lvcreate --size {} --name {} {}'.format(sz , lv ,vg))
-               os.system("lvdisplay {}/{}".format(vg ,lv))
-               os.system('mkfs.ext4 /dev/{}/{}'.format(vg , lv))
-               print("Logical Volume Formatted ..")
-               #mounting the lvm partition
-               fold = input("Enter the folder Name which you want to be mount on LVM Parition : ")
-               vg = input("Enter Volume Group Name : ")
-               lv = input("Enter Logical Volume Name : ")
-               os.system("mount /dev/{}/{}  {}".format(vg , lv , fold))
-               print("Mounted the LVM Partiton ..")
-               os.system('df -hT')
+def configureNameNode(option):
+node = "name"
+if(option == "1"):
+ip = input("Enter your local IP: ")
+folder = input("Enter the folder name: ")
+if(not os.path.isdir(folder)):
+os.mkdir(folder)
+print("Configuring ...........")
+os.system("rm -f /etc/hadoop/hdfs-site.xml")
+os.system(f"echo -e \'{getFileContent(folder,node)}\' > /etc/hadoop/hdfs-site.xml")
+os.system("rm -f /etc/hadoop/core-site.xml")
+os.system(f"echo -e \'{getFileContentCore(ip)}\' > /etc/hadoop/core-site.xml")
+os.system("hadoop namenode -format")
+os.system("setenforce 0")
+os.system("systemctl disable firewalld")
+os.system("hadoop-daemon.sh start namenode")
+print("Configured NameNode")
+elif(option == "2"):
+ip = input("Enter the remote IP: ")
+folder = input("Enter the folder name: ")
+if(not os.path.isdir(folder)):
+os.mkdir(folder)
+password = g.getpass("Please enter the password: ")
+print("Configuring ...........")
+os.system(f"sshpass -p {password} ssh root@{ip} rm -f /etc/hadoop/hdfs-site.xml")
+os.system(f"echo -e \'{getFileContent(folder,node)}\' > /root/send.txt")
+os.system(f"sshpass -p {password} scp /root/send.txt root@{ip}:/")
+os.system(f"sshpass -p {password} ssh root@{ip} mv /send.txt /etc/hadoop/hdfs-site.xml -f")
+os.system(f"sshpass -p {password} ssh root@{ip} rm -f /etc/hadoop/core-site.xml")
+os.system(f"echo -e \'{getFileContentCore(ip)}\' > /root/send.txt")
+os.system(f"sshpass -p {password} scp /root/send.txt root@{ip}:/")
+os.system(f"sshpass -p {password} ssh root@{ip} mv /send.txt /etc/hadoop/core-site.xml -f")
+os.system(f"sshpass -p {password} ssh root@{ip} hadoop namenode -format")
+os.system(f"sshpass -p {password} ssh root@{ip} setenforce 0")
+os.system(f"sshpass -p {password} ssh root@{ip} systemctl disable firewalld")
+os.system(f"sshpass -p {password} ssh root@{ip} hadoop-daemon.sh start namenode")
+print("Configured NameNode")
 
-    elif location==2:
-               #creating lvm partition 
-               dev = input("Enter Device Name : ")
-               os.system('ssh {} pvcreate {}'.format(ip , dev))
-               print("Created pv : {}".format(dev))
-               os.system('ssh {} pvdisplay {}'.format(ip , dev))
-               vg = input("Enter Name of Volume Group : ")
-               os.system('ssh {} vgcreate {}  {}'.format(ip , vg , dev))
-               os.system('ssh {} vgdisplay {}'.format(ip , vg))
-               lv = input("Enter Logical Volume Name : ")
-               sz = input("Enter Size of Partition you want : ")
-               os.system('ssh {} lvcreate --size {} --name {} {}'.format(ip , sz , lv ,vg))
-               os.system("ssh {} lvdisplay {}/{}".format(ip , vg ,lv))
-               os.system('ssh {} mkfs.ext4 /dev/{}/{}'.format(ip ,vg , lv))
-               print("Logical Volume Formatted ..")
-               #mounting the lvm partition
-               folder = input("Enter the folder Name which you want to be mount on LVM Parition : ")
-               vg = input("Enter Volume Group Name : ")
-               lv = input("Enter Logical Volume Name : ")
-               os.system("ssh {} mount /dev/{}/{}  {}".format(ip , vg , lv , folder))
-               print("Mounted the LVM Partiton ..")
-               os.system('ssh {} df -hT'.format(ip))
+def configureDataNode(option):
+node = "data"
+if(option == "1"):
+ip = input("Enter the master IP: ")
+folder = input("Enter the folder name: ")
+if(not os.path.isdir(folder)):
+os.mkdir(folder)
+print("Configuring ...........")
+os.system("rm -f /etc/hadoop/hdfs-site.xml")
+os.system(f"echo -e \'{getFileContent(folder,node)}\' > /etc/hadoop/hdfs-site.xml")
+os.system("rm -f /etc/hadoop/core-site.xml")
+os.system(f"echo -e \'{getFileContentCore(ip)}\' > /etc/hadoop/core-site.xml")
+os.system("hadoop namenode -format")
+os.system("setenforce 0")
+os.system("systemctl disable firewalld")
+os.system("hadoop-daemon.sh start namenode")
+print("Configured DataNode")
+elif(option == "2"):
+ip = input("Enter the remote IP: ")
+masterIp = input("Enter the master IP: ")
+folder = input("Enter the folder name: ")
+if(not os.path.isdir(folder)):
+os.mkdir(folder)
+password = g.getpass("Please enter the password: ")
+print("Configuring ...........")
+os.system(f"sshpass -p {password} ssh root@{ip} rm -f /etc/hadoop/hdfs-site.xml")
+os.system(f"echo -e \'{getFileContent(folder,node)}\' > /root/send.txt")
+os.system(f"sshpass -p {password} scp /root/send.txt root@{ip}:/")
+os.system(f"sshpass -p {password} ssh root@{ip} mv /send.txt /etc/hadoop/hdfs-site.xml -f")
+os.system(f"sshpass -p {password} ssh root@{ip} rm -f /etc/hadoop/core-site.xml")
+os.system(f"echo -e \'{getFileContentCore(masterIp)}\' > /root/send.txt")
+os.system(f"sshpass -p {password} scp /root/send.txt root@{ip}:/")
+os.system(f"sshpass -p {password} ssh root@{ip} mv /send.txt /etc/hadoop/core-site.xml -f")
+os.system(f"sshpass -p {password} ssh root@{ip} setenforce 0")
+os.system(f"sshpass -p {password} ssh root@{ip} systemctl disable firewalld")
+os.system(f"sshpass -p {password} ssh root@{ip} hadoop-daemon.sh start datanode")
+print("Configured DataNode")
 
-def Linux_cmd(location):
-    if location==1:
-        #Run Cmd on local host
-        cmd=input("Enter the command: ")
-        os.system(cmd)
-    elif location==2:
-        #run cmd on remote host
-        cmd=input("Enter your command: ")
-        os.system("ssh {} {}".format(ip,cmd))
+def HadoopMenu():
+while(1):
+print()
+print()
+print("Welcome to Hadoop Configuration")
+print("1] Configure NameNode")
+print("2] Configure DataNode")
+print("3] Check Report")
+print("4] Check NameNode Status")
+print("5] Check DataNode status")
+print("6] Stop NameNode")
+print("7] Stop Datanode")
+print("8] Exit\n\n")
+option = input("Select your option: ")
+if(option=="1"):
+print("Choose an option: \n1] Local\n2] Remote\n")
+lor = input("Select an option: \n")
+configureNameNode(lor)
+elif(option=="2"):
+print("Choose an option: \n1] Local\n2] Remote\n")
+lor = input("Select an option: ")
+configureDataNode(lor)
+elif(option=="3"):
+print("Getting Data.............")
+os.system("hadoop dfsadmin -report")
+elif(option=="4" or option=="5"):
+print("Choose an option: \n1] Local\n2] Remote\n")
+lor = input("Select an option: \n")
+if(lor=="1"):
+os.system("jps")
+elif(lor=="2"):
+ip = input("Enter the remote IP: ")
+password = g.getpass("Please enter the password: \n")
+os.system(f"sshpass -p {password} ssh root@{ip} jps")
+elif(option=="6"):
+print("Choose an option: \n1] Local\n2] Remote\n")
+lor = input("Select an option: \n")
+if(lor=="1"):
+os.system("hadoop-daemon.sh stop namenode")
+print("Stopped local NameNode")
+elif(lor=="2"):
+ip = input("Enter the remote IP: ")
+password = g.getpass("Please enter the password: \n")
+os.system(f"sshpass -p {password} ssh root@{ip} hadoop-daemon.sh stop namenode")
+print("Stopped remote NameNode")
+elif(option=="7"):
+print("Choose an option: \n1] Local\n2] Remote\n")
+lor = input("Select an option: \n")
+if(lor=="1"):
+os.system("hadoop-daemon.sh stop datanode")
+print("Stopped local DataNode")
+elif(lor=="2"):
+ip = input("Enter the remote IP: ")
+password = g.getpass("Enter the password: ")
+os.system(f"sshpass -p {password} ssh root@{ip} hadoop-daemon.sh stop datanode")
+print("Stopped remote DataNode")
+elif(option=="8"):
+print("Exiting Hadoop Menu .......Please Wait..............")
+sleep(2)
+break
 
-os.system("tput setaf 3")
-print("\t\t\t***Welcome To My Program***")
-os.system("tput setaf 7")
-print("\t\t\t---------------------------\n\n")
+def LVMMenu():
+while(1):
+print()
+print()
+print("Welcome to LVM Configuration")
+print("1] Check Disk Information")
+print("2] Create a Physical Volume")
+print("3] Create a Volume Group")
+print("4] Create, Format, Mount LVM")
+print("5] Extend LVM")
+print("6] Exit")
+print()
+option = input("Select an option: ")
+if(option == "1"):
+os.system("fdisk -l")
+elif(option == "2"):
+disk_name = input("Please spcify the disk name: ")
+os.system(f"pvcreate {disk_name}")
+elif(option == "3"):
+vgname = input("Name of the Volume Group: ")
+disks = input("Please specify all the DiskNames ( with spaces ): ")
+os.system(f"vgcreate {vgname} {disks}")
+elif(option == "4"):
+vgname = input("Name of the Volume Group: ")
+lvmname = input("Name of the LVM: ")
+size = input("Enter the size: ")
+mount_point = input("Specify the Mount Point: ")
+os.system(f"lvcreate --size {size} --name {lvmname} {vgname}")
+os.system(f"mkfs.ext4 /dev/{vgname}/{lvmname}")
+os.system(f"mount /dev/{vgname}/{lvmname} {mount_point}")
+elif(option == "5"):
+vgname = input("Specify the name of the Volume Group: ")
+lvmname = input("Specify the name of the LVM: ")
+size = input("Size to be increased: ")
+os.system(f"lvextend --size +{size} /dev/{vgname}/{lvmname}")
+os.system(f"resize2fs /dev/{vgname}/{lvmname}")
+elif(option == "6"):
+print("Exiting LVM Menu .......Please Wait..............")
+sleep(2)
+break
 
-Password=input("Enter the password: ")
-for i in range(3):
-    Password=gp.getpass("Enter the password: ")
-    if Password=="redhat":
-        print("""
-        Where do you want to run your :
-        Press 1: for local system
-        Press 2: for remote system
-        """)
-        location=int(input("-->"))
-        while True:
-            if location==1:
-                print("""
-                Press 1: Run Basic Linux command
-                Press 2: To configure and start the NameNode
-                Press 3: To configure and start datanode
-                Press 4: To create and mount LVM Partition
-                Press 5: To Exit
-                """)
-                requirement=int(input("-->"))
-                if requirement==1:
-                    Linux_cmd(location)
-                elif requirement==2:
-                    namenode(location)
-                elif requirement==3:
-                    datanode(location)
-                 elif requirement==4:
-                    datanode(location)
-                elif requirement==5:
-                    exit()
-            elif location==2:
-                ip = input("\n Please enter the remote host IP: ")
-                print("""\n
-                Press 1: Run Basic Linux command
-                Press 2: To configure and start the NameNode
-                Press 3: To configure and start datanode
-                Press 4: To create and mount LVM Partition
-                Press 5: To Exit
-                """)
-                requirement=int(input("-->"))
-                if requirement==1:
-                    Linux_cmd(location)
-                elif requirement==2:
-                    namenode(location)
-                elif requirement==3:
-                    datanode(location)
-                elif requirement==4:
-                    datanode(location)
-                elif requirement==5:
-                    exit()
-            else:
-                print("Invalid input")
-    else:
-        print("Try Again")
-        if i!=0:
-            print("you have",3-i,"Chances left")
+def AWSMenu():
+while(1):
+print()
+print()
+print("Welcome to AWS Configuration\n\n")
+print("1] Set a User Profile")
+print("2] Create a KeyPair")
+print("3] List of VPC-ids")
+print("4] List of Subnet-ids")
+print("5] Create a Security Group")
+print("6] List of all Security Group IDs")
+print("7] Add Inbound Rules to Security Group")
+print("8] Launch Instance")
+print("9] List of all Instances")
+print("10] Connect to an Instance")
+print("11] Stop Instances")
+print("12] Terminate Instances")
+print("13] Create an EBS Volume")
+print("14] List of all EBS Volumes")
+print("15] Attach Volume")
+print("16] Create an S3 Bucket")
+print("17] Upload File to S3 Bucket")
+print("18] Create a CloudFront Distribution")
+print("19] Exit\n\n")
+option = input("Select an option: ")
+if(option=="1"):
+os.system("aws configure")
+elif(option=="2"):
+keyName = input("Enter the KeyName: ")
+os.system(f"aws ec2 create-key-pair --key-name {keyName} --query \"KeyMaterial\" --output text > {keyName}.pem")
+print("Key has been downloaded to your current directory.")
+elif(option=="3"):
+print("VPC-ID\t\t\tDefault_VPC")
+os.system("aws ec2 describe-vpcs --query \"Vpcs[*].[VpcId,IsDefault]\" --output=text")
+elif(option=="4"):
+print("Availability Zone\t\tSubnetID\t\tVpcID")
+os.system("aws ec2 describe-subnets --query \"Subnets[*].[AvailabilityZone,SubnetId,VpcId]\" --output=text")
+elif(option=="5"):
+gname = input("Enter group_name: ")
+des = input("Enter description: ")
+os.system(f"aws ec2 create-security-group --description \"{des}\" --group-name {gname}")
+elif(option=="6"):
+os.system("aws ec2 describe-security-groups --query \"SecurityGroups[*].[GroupName,GroupId]\" --output=json")
+elif(option=="7"):
+groupID = input("Please enter the Security Group ID: ")
+protocol = input("Which protocol? ")
+port = input("Enter the port number: ")
+cidr = input("Enter the IP range to be allowed ( in CIDR notation ): ")
+os.system(f"aws ec2 authorize-security-group-ingress --group-id {groupID} --protocol {protocol} --port {port} --cidr {cidr}")
+print(f"Added {protocol} to the Inbound Rules")
+elif(option=="8"):
+imageId = input("Enter the AMI ID: ")
+instanceType = input("Enter the Instance Type: ")
+subnetId = input("Enter the Subnet-ID: ")
+sg = input("Enter the Security Group ID: ")
+keyname = input("Enter the KeyName: ")
+count = input("How many instances you want? ")
+os.system(f"aws ec2 run-instances --image-id {imageId} --count {count} --instance-type {instanceType} --key-name {keyname} --security-group-ids {sg} --subnet-id {subnetId}")
+elif(option=="9"):
+print("Instance-ID\t\tPublicIP")
+os.system("aws ec2 describe-instances --query \"Reservations[*].Instances[*].[InstanceId,PublicIpAddress]\" --output=text")
+elif(option=="10"):
+ip = input("Enter the PublicIP: ")
+keyName = input("Enter the KeyName: ")
+os.system(f"ssh -i {keyName}.pem ec2-user@{ip}")
+elif(option=="11"):
+instanceIDs = input("Enter the Instance IDs ( with space in between ): ")
+os.system(f"aws ec2 stop-instances --instance-ids {instanceIDs}")
+elif(option=="12"):
+instanceIDs = input("Enter the Instance IDs ( with space in between ): ")
+os.system(f"aws ec2 terminate-instances --instance-ids {instanceIDs}")
+elif(option=="13"):
+size = input("Enter the size: ")
+az = input("Enter the Availability Zone: ")
+name = input("Enter Tag Name: ")
+tag = "ResourceType=volume,Tags=[{Key=Name,Value="+name+"}]"
+os.system(f"aws ec2 create-volume --availability-zone {az} --size {size} --tag-specifications \"{tag}\"")
+elif(option=="14"):
+print("Displaying VolumeID,Availability Zone,Size,Tag\n")
+os.system("aws ec2 describe-volumes --query \"Volumes[*].[VolumeId,AvailabilityZone,Size,Tags[*].Value]\"")
+elif(option=="15"):
+volId = input("Enter the Volume ID: ")
+instanceID = input("Enter the Instance ID: ")
+device = input("Enter Disk Name: ")
+os.system(f"aws ec2 attach-volume --device {device} --instance-id {instanceID} --volume-id {volId}")
+elif(option=="16"):
+bucketName = input("Enter the Bucket Name: ")
+region = input("Enter the Region: ")
+os.system(f"aws s3api create-bucket --bucket {bucketName} --region {region} --create-bucket-configuration LocationConstraint={region}")
+opt= input("Do you want to make the bucket public? y or n: ")
+if(opt=="y"):
+os.system(f"aws s3api put-bucket-acl --acl public-read --bucket {bucketName}")
+elif(option=="17"):
+bucketname = input("Enter the Bucket Name: ")
+filePath = input("FileName: ")
+os.system(f"aws s3api put-object --bucket {bucketname} --body {filePath} --key {filePath}")
+elif(option=="18"):
+bn = input("Enter Bucket Name: ")
+os.system(f"aws cloudfront create-distribution --origin-domain-name {bn}.s3.amazonaws.com")
+elif(option=="19"):
+print("Exiting AWS Menu .......Please Wait..............")
+sleep(2)
+break
+
+
+def dockerMenu():
+while(1):
+print()
+print()
+print("Welcome to Docker Configuration: ")
+print("1] Start Docker service")
+print("2] Downloaded Images")
+print("3] Launch a Container")
+print("4] Active Containers")
+print("5] Stop Container")
+print("6] Terminate a Container")
+print("7] Pull Image")
+print("8] Attach a Container")
+print("9] Configure a WebServer")
+print("10] Add new files to the active webserver")
+print("11] Exit")
+option = input("\nSelect an option: ")
+if(option=="1"):
+print("Starting Docker........")
+os.system("systemctl start docker")
+print("Started Docker service")
+elif(option=="2"):
+os.system("docker images")
+elif(option=="3"):
+osName = input("Enter an OS name: ")
+tag = input("Enter the tag: ")
+name = input("Enter a nickname: ")
+os.system(f"docker run -dit --name {name} {osName}:{tag}")
+print(f"Launched {name}")
+elif(option=="4"):
+os.system("docker ps")
+print()
+elif(option=="5"):
+cname = input("Enter the container Name/ID: ")
+os.system(f"docker stop {cname}")
+print(f"Stopped {cname}")
+elif(option=="6"):
+cname = input("Enter the container Name/ID: ")
+os.system(f"docker rm -f {cname}")
+elif(option=="7"):
+osname = input("Enter the OS name: ")
+tag = input("Enter the tag: ")
+os.system(f"docker pull {osname}:{tag}")
+print(f"Successfully downloaded {osname}:{tag}")
+elif(option=="8"):
+id = input("Enter the container Name/ID: ")
+os.system(f"docker attach {id}")
+elif(option=="9"):
+ip = input("Enter your current ip: ")
+name = input("Enter a NickName: ")
+port = input("Enter the Port Number: ")
+files = input("Enter the path of the files to be served by the webserver: ")
+os.system(f"docker run -dit -p {port}:80 --name {name} vimal13/apache-webserver-php:latest")
+print("\nYour container is launched")
+print("Transfering your files..........")
+os.system(f"docker cp {files} {name}:/var/www/html/")
+print(f"You can now access the webpage at {ip}:{port}/{files}")
+elif(option=="10"):
+name = input("Enter the Container Name: ")
+files = input("Enter the path of the files to be added: ")
+os.system(f"docker cp {files} {name}:/var/www/html/")
+elif(option=="11"):
+print("Exiting Docker Menu .......Please Wait..............")
+sleep(2)
+break
+
+while(1):
+print()
+print()
+pyfiglet.print_figlet("Welcome to Python Menu",font="slant")
+print("1] Hadoop Configuration")
+print("2] LVM Configuration")
+print("3] AWS Configuration")
+print("4] Docker Configuration")
+print("5] Exit")
+option = input("Select an option: ")
+if(option=="1"):
+HadoopMenu()
+elif(option=="2"):
+LVMMenu()
+elif(option=="3"):
+AWSMenu()
+elif(option=="4"):
+dockerMenu()
+elif(option=="5"):
+print("Exiting Program ......Please Wait............")
+sleep(2)
+exit()
+
